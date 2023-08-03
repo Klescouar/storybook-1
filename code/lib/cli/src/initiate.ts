@@ -317,12 +317,20 @@ const scaffoldProject = async ({
 
   const packageJson = await readJson(path.join(process.cwd(), 'package.json'), 'utf8');
 
-  delete packageJson.resolutions;
   packageJson.name = template.key.replace('/', '-').toLowerCase();
 
+  delete packageJson.resolutions;
+
+  /** START: Remove as soon as sandboxes are updated on main branch and contain the proper package manager */
   await unlink(path.join(process.cwd(), '.stackblitzrc'));
   await unlink('.yarnrc.yml');
   await rm(path.join(process.cwd(), '.yarn'), { recursive: true });
+
+  if (packageManager.type === 'yarn2') {
+    await packageManager.runPackageCommand('set', ['version', 'berry']);
+  }
+  /** END */
+
   await writeJson(path.join(process.cwd(), 'package.json'), packageJson, { spaces: 2 });
 
   const readmePath = path.join(process.cwd(), 'README.md');
@@ -343,10 +351,6 @@ const scaffoldProject = async ({
   if (skipInstall || template.projectType === ProjectType.REACT_NATIVE) {
     logSuccessfulBootstrapMessage();
     return { shouldRunDev: false };
-  }
-
-  if (packageManager.type === 'yarn2') {
-    await packageManager.runPackageCommand('set', ['version', 'berry']);
   }
 
   await packageManager.installDependencies();
